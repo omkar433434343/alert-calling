@@ -376,6 +376,19 @@ def _build_ai_response(call_sid: str, caller: str, ai_text: str, conv_url: str) 
     )
 
 
+def log_full_transcript(call_sid: str, caller_phone: str, transcript: str):
+    if transcript.strip():
+        logger.info(
+            "[%s] FULL TRANSCRIPT for %s\n%s\n[%s] END FULL TRANSCRIPT",
+            call_sid,
+            caller_phone or "unknown",
+            transcript,
+            call_sid,
+        )
+    else:
+        logger.info("[%s] FULL TRANSCRIPT for %s is empty", call_sid, caller_phone or "unknown")
+
+
 # ─── Call-complete handler (background task) ──────────────────────────────────
 
 async def handle_call_complete(call_sid: str, caller_phone: str, ai_text: str):
@@ -387,6 +400,7 @@ async def handle_call_complete(call_sid: str, caller_phone: str, ai_text: str):
         for m in messages
         if m.get("role") != "system"
     )
+    log_full_transcript(call_sid, caller_phone, transcript)
 
     symptom_data = None
     try:
@@ -427,6 +441,7 @@ async def call_completed(request: Request):
             for m in messages
             if m.get("role") != "system"
         )
+        log_full_transcript(call_sid, caller_phone, transcript)
         if transcript.strip():
             symptom_data = await extract_symptoms(transcript, caller_phone)
             if symptom_data:
