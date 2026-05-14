@@ -26,7 +26,9 @@ OPENAI_API_KEY      = os.environ["OPENAI_API_KEY"]
 TWILIO_ACCOUNT_SID  = os.environ["TWILIO_ACCOUNT_SID"]
 TWILIO_AUTH_TOKEN   = os.environ["TWILIO_AUTH_TOKEN"]
 TWILIO_PHONE_NUMBER = os.environ["TWILIO_PHONE_NUMBER"]
-SERVER_URL          = os.environ["SERVER_URL"]
+SERVER_URL          = os.environ["SERVER_URL"].strip().rstrip("/")
+if not SERVER_URL.startswith(("http://", "https://")):
+    SERVER_URL = f"https://{SERVER_URL}"
 
 # ─── Clients ─────────────────────────────────────────────────────────────────
 
