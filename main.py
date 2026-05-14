@@ -44,6 +44,18 @@ twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 app = FastAPI(title="Alert+ Voice Intake")
 
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info("HTTP %s %s", request.method, request.url.path)
+    try:
+        response = await call_next(request)
+        logger.info("HTTP %s %s -> %s", request.method, request.url.path, response.status_code)
+        return response
+    except Exception:
+        logger.exception("HTTP %s %s failed", request.method, request.url.path)
+        raise
+
 # ─── In-memory stores ─────────────────────────────────────────────────────────
 
 call_sessions: dict[str, list[dict]] = {}
