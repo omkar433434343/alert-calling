@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: alert-plus-calling
+    runtime: docker
+    healthCheckPath: /health
+    preDeployCommand: alembic upgrade head
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: SERVER_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
