@@ -3,6 +3,7 @@ import re
 import json
 import asyncio
 import logging
+import uuid
 from typing import Optional
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
@@ -12,7 +13,7 @@ from openai import AsyncOpenAI, RateLimitError, APITimeoutError, APIStatusError
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from database import get_db, SessionLocal
+from database import Base, engine, get_db, SessionLocal
 from models import TriageRecord
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
@@ -57,6 +58,13 @@ async def log_requests(request: Request, call_next):
     except Exception:
         logger.exception("HTTP %s %s failed", request.method, request.url.path)
         raise
+
+
+@app.on_event("startup")
+async def init_db_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables verified")
 
 # ─── In-memory stores ─────────────────────────────────────────────────────────
 
@@ -574,6 +582,38 @@ async def debug_records():
             }
             for r in records
         ]
+
+
+@app.get("/debug/test-db-save")
+async def debug_test_db_save():
+    call_sid = f"debug-{uuid.uuid4()}"
+    record = TriageRecord(
+        caller_phone="+10000000000",
+        call_sid=call_sid,
+        source="debug_test",
+        transcript="DEBUG TEST: verifying Railway can write to PostgreSQL.",
+        patient_name="Debug Test Patient",
+        district="Debug District",
+        symptoms={
+            "primary_symptom": "debug symptom",
+            "associated_symptoms": ["debug associated symptom"],
+            "medication_taken": "none",
+        },
+        severity="1",
+        brief="debug symptom",
+    )
+    async with SessionLocal() as db:
+        db.add(record)
+        await db.commit()
+        await db.refresh(record)
+    logger.info("Debug DB test record saved | call: %s | id: %s", call_sid, record.id)
+    return {
+        "saved": True,
+        "id": record.id,
+        "call_sid": record.call_sid,
+        "patient_name": record.patient_name,
+        "created_at": str(record.created_at),
+    }
 
 
 # ─── Health check ─────────────────────────────────────────────────────────────
